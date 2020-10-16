@@ -220,13 +220,15 @@ def processShapes(src_path, dst_path, shapes_file, offset_start, offset_end=0):
 		    f.write(etree.tostring(tree.getroot(), encoding="UTF-8"))
 
 	    if presentations:
+
 		    os.mkdir(dst_path+"/presentation")
 		    for presentation in presentations:
-			    os.mkdir(dst_path+"/presentation/"+presentation)
-			    copyTree(src_path+"/presentation/"+presentation, dst_path+"/presentation/"+presentation)
-
+			    if os.path.isdir(src_path+"/presentation/"+presentation):
+				    os.mkdir(dst_path+"/presentation/"+presentation)
+				    copyTree(src_path+"/presentation/"+presentation, dst_path+"/presentation/"+presentation)
+			    else:
+				    shutil.copy2(src_path+"/presentation/"+presentation, dst_path+"/presentation/"+presentation)
     return
-
 
 try:
     import ffmpeg
