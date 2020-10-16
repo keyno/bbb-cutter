@@ -124,21 +124,28 @@ def processEvents(src_path, dst_path, events_file, offset_start, offset_end=0):
 		    ts = event.get("timestamp")
 		    if ts:
 			    ts = float(ts)
-			    if ts<offset_start or ts>offset_end:
-				    root.remove(event) # out of our range
-			    else:
-				    event.set("timestamp", str(round(ts - offset_start, 1)))
+			    if ts!=0: # always storing the first event
+				    if ts<offset_start or ts>offset_end:
+					    root.remove(event) # out of our range
+				    else:
+					    event.set("timestamp", str(round(ts - offset_start, 1)))
+
 		    start_ts = event.get("start_timestamp")
 		    stop_ts = event.get("stop_timestamp")
 		    if start_ts and stop_ts:
 			    start_ts =  float(start_ts)
 			    stop_ts =  float(stop_ts)
-			    if(start_ts>=offset_start and start_ts<offset_end):
-				    event.set("start_timestamp", str(round(start_ts - offset_start, 1)))
+			    if(start_ts>=offset_start and start_ts<offset_end or 
+				stop_ts>=offset_start and stop_ts<offset_end):
+				    if(start_ts>offset_start):
+					    event.set("start_timestamp", str(round(start_ts - offset_start, 1)))
+				    else:
+					    event.set("start_timestamp", '0')
+
 				    if(stop_ts<offset_end):
 					    event.set("stop_timestamp", str(round(stop_ts - offset_start, 1)))
 				    else:
-					    event.set("stop_timestamp", str(offset_end))
+					    event.set("stop_timestamp", str(offset_end - offset_start))
 			    else:
 				    root.remove(event) # out of our range
 
@@ -165,33 +172,63 @@ def processSlides(src_path, dst_path, slides_file, offset_start, offset_end=0):
 	    tree.write(dst_path+slides_file, xml_declaration=True, encoding="UTF-8")
     return
 
+# Generates the new presentations preview and copies actual presentations
 def processShapes(src_path, dst_path, shapes_file, offset_start, offset_end=0):
     shapesXML = src_path + shapes_file
     if not os.path.exists(shapesXML):
 	    print("Warning! Wrong shapes path: {}".format(shapesXML))
     else:
 	    etree.register_namespace("", "http://www.w3.org/2000/svg")
+	    etree.register_namespace("xlink", "http://www.w3.org/1999/xlink")
 	    tree = etree.parse(shapesXML)
 	    root = tree.getroot()
-	    images = root.findall("image")
+	    images = root.findall("{http://www.w3.org/2000/svg}image")
+	    presentations = [] # filter and store presentations used in video only
+
 	    for img in images:
 		    start_ts = img.get("in")
 		    stop_ts = img.get("out")
 		    if start_ts and stop_ts:
 			    start_ts =  float(start_ts)
 			    stop_ts =  float(stop_ts)
-			    if(start_ts>=offset_start and start_ts<offset_end):
-				    img.set("in", str(round(start_ts - offset_start, 1)))
+			    if(start_ts>=offset_start and start_ts<offset_end or
+				stop_ts>offset_start and stop_ts<=offset_end):
+				    if(start_ts>offset_start):
+					    img.set("in", str(round(start_ts - offset_start, 1)))
+				    else:
+					    img.set("in", '0') # earlier than start, so we will start from the zero
+
 				    if(stop_ts<offset_end):
 					    img.set("out", str(round(stop_ts - offset_start, 1)))
 				    else:
-					    img.set("out", str(offset_end))
+					    img.set("out", str(offset_end - offset_start)) # if it out of bounds we will set maximum duration here
+
+				    try:
+					    url_part = img.get('{http://www.w3.org/1999/xlink}href').split('/')
+					    if url_part[0]=="presentation" and url_part[1] not in presentations:
+						    presentations.append(url_part[1].strip())
+
+				    except ValueError:
+					    pass
+				    
 			    else:
 				    root.remove(img) # out of our range
 
+#	    tree.write(dst_path+shapes_file, xml_declaration=True, encoding="UTF-8")
 	    with open(dst_path+shapes_file, 'wb') as f:
 		    f.write('<?xml version="1.0"?>\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n'.encode('utf8'))
-		    f.write(etree.tostring(root, encoding="UTF-8"))
+		    f.write(etree.tostring(tree.getroot(), encoding="UTF-8"))
+
+	    if presentations:
+		    os.mkdir(dst_path+"/presentation")
+		    for presentation in presentations:
+			    print(presentation)
+			    os.mkdir(dst_path+"/presentation/"+presentation)
+	#		    print(src_path+"/presentation/"+presentation, dst_path+"/presentation/"+presentation)
+			    copyTree(src_path+"/presentation/"+presentation, dst_path+"/presentation/"+presentation)
+
+#	    copyTree(src_path+"/presentation", dst_path+"/presentation")
+
     return
 
 
@@ -220,14 +257,14 @@ else:
 		    reportTSV.write("event_id\tplayback_id\tplayback_start\tplayback_duration\n")
 		    reportTSV.close()
 	    except:
-		    'no report'
+		    pass
 
 	    for row in reader:
 		    offset_start = getSec(row[hdr.index("offset_start")])
 		    offset_end = getSec(row[hdr.index("offset_end")])
 		    if offset_start is None or offset_end is None:
 #			    print("Row with subject '{}' is skipped because of incorrect start and end times.".format(row[hdr.index("subject")]))
-			    "rem"
+			    continue
 		    else:
 			    old_meeting_id = row[hdr.index("meeting_id")]
 			    src_base = sys.argv[1].rstrip('/')
@@ -240,7 +277,7 @@ else:
 			    else:
 				    new_meeting_id = row[hdr.index("author")]
 
-			    new_meeting_name = new_meeting_id+'. '+row[hdr.index("subject")]+" ("+row[hdr.index("hall")]+")" # TODO: check existance of the each index
+			    new_meeting_name = new_meeting_id+'. '+row[hdr.index("subject")]+" (Conference hall: "+row[hdr.index("hall")]+")" # TODO: check existance of the each index
 			    new_meeting_id = "speaker-"+"".join(new_meeting_id.split()) # replace all white spaces
 
 			    dst_path = dst_base+"/"+new_meeting_id
@@ -254,13 +291,11 @@ else:
 			    dst_path = dst_base+'/'+new_meeting_id
 
 			    os.makedirs(dst_path)
-			    os.mkdir(dst_path+"/presentation")
-			    copyTree(src_path+"/presentation", dst_path+"/presentation")
 
 			    shutil.copy2(src_path+"/captions.json", dst_path)
 			    shutil.copy2(src_path+"/presentation_text.json", dst_path)
 
-			    new_start_time, new_end_time = processMetadata(src_path, dst_path, new_meeting_id, new_meeting_id, offset_start, duration)
+			    new_start_time, new_end_time = processMetadata(src_path, dst_path, new_meeting_id, new_meeting_name, offset_start, duration)
 
 			    processEvents(src_path, dst_path, "/cursor.xml", offset_start, offset_end)
 			    processEvents(src_path, dst_path, "/panzooms.xml", offset_start, offset_end)
@@ -270,11 +305,12 @@ else:
 
 			    try:
 				    hdr.index("event_id")
-				    reportTSV = open("report.txt", 'at+')
+				    reportTSV = open(dst_base+"/report.txt", 'at+')
 				    reportTSV.write("{}\t{}\t{}\t{}\n".format(row[hdr.index("event_id")], new_meeting_id, new_start_time, duration*1000))
 				    reportTSV.close()
 			    except:
-				    'handle somehow'
+				    continue
 
-			    trimVideo(src_path, dst_path, "/video/webcams.webm", offset_start, offset_end)
-			    trimVideo(src_path, dst_path, "/deskshare/deskshare.webm", offset_start, offset_end)
+			    #trimVideo(src_path, dst_path, "/video/webcams.webm", offset_start, offset_end)
+			    #trimVideo(src_path, dst_path, "/deskshare/deskshare.webm", offset_start, offset_end)
+	    print("Finished.")

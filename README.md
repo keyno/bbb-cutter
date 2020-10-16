@@ -66,6 +66,8 @@ Note: Field names `hall`, `subject`, `firstname`, `lastname`, `author` used only
 
 Next after header the respective content should be provided as well separated by semicolon.
 
+Field order doesn't matters.
+
 Example of `csv_file` content:
 ```
 event_id;hall;author;subject;firstname;lastname;meeting_id;offset_start;offset_end
@@ -92,8 +94,8 @@ The example above will process the file `videos.csv` and will seek for specified
 
 ## Known bugs
 
-Well, described utilities don't have a proper error handling for now, so, we don't have any warranties if it will be stable if some of files are absent in working directories.
-So, it's very important to follow the directory structure of BigBlueButton video and store all necessary metadata.
+Well, described utilities don't have a proper error handling for now, so, we don't have any warranties if it will be unstable in case of some files will be absent in working directories.
+So, it's very important to follow the directory structure of BigBlueButton video and keep in order the all necessary metadata.
 
 ## Authors
 
