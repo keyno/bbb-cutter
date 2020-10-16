@@ -90,7 +90,7 @@ Example:
 python3 bbb-cutter.py /var/bigbluebutton/published/presentation/ /home/pavel/cutted videos.csv
 ```
 
-The example above will process the file `videos.csv` and will seek for specified IDs in `/var/bigbluebutton/published/presentation/` and will store the result in `/home/pavel/cutted`. All inexistend directories will be created automatically.
+The example above will process the file `videos.csv` and will seek for specified IDs in `/var/bigbluebutton/published/presentation/` and will store the result in `/home/pavel/cutted`. All inexistent directories will be created automatically.
 
 ## Known bugs
 

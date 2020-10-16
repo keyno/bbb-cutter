@@ -222,12 +222,8 @@ def processShapes(src_path, dst_path, shapes_file, offset_start, offset_end=0):
 	    if presentations:
 		    os.mkdir(dst_path+"/presentation")
 		    for presentation in presentations:
-			    print(presentation)
 			    os.mkdir(dst_path+"/presentation/"+presentation)
-	#		    print(src_path+"/presentation/"+presentation, dst_path+"/presentation/"+presentation)
 			    copyTree(src_path+"/presentation/"+presentation, dst_path+"/presentation/"+presentation)
-
-#	    copyTree(src_path+"/presentation", dst_path+"/presentation")
 
     return
 
@@ -311,6 +307,6 @@ else:
 			    except:
 				    continue
 
-			    #trimVideo(src_path, dst_path, "/video/webcams.webm", offset_start, offset_end)
-			    #trimVideo(src_path, dst_path, "/deskshare/deskshare.webm", offset_start, offset_end)
+			    trimVideo(src_path, dst_path, "/video/webcams.webm", offset_start, offset_end)
+			    trimVideo(src_path, dst_path, "/deskshare/deskshare.webm", offset_start, offset_end)
 	    print("Finished.")
