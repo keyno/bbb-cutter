@@ -136,7 +136,8 @@ def processEvents(src_path, dst_path, events_file, offset_start, offset_end=0):
 			    start_ts =  float(start_ts)
 			    stop_ts =  float(stop_ts)
 			    if(start_ts>=offset_start and start_ts<offset_end or 
-				stop_ts>=offset_start and stop_ts<offset_end):
+				stop_ts>offset_start and stop_ts<=offset_end or
+				start_ts<offset_start and stop_ts>offset_end):
 				    if(start_ts>offset_start):
 					    event.set("start_timestamp", str(round(start_ts - offset_start, 1)))
 				    else:
@@ -147,6 +148,7 @@ def processEvents(src_path, dst_path, events_file, offset_start, offset_end=0):
 				    else:
 					    event.set("stop_timestamp", str(offset_end - offset_start))
 			    else:
+#				    print("Skipping "+events_file+", start_ts: "+str(start_ts)+" vs "+str(offset_start)+", stop_ts: "+str(stop_ts)+" vs "+str(offset_end)+".")
 				    root.remove(event) # out of our range
 
 	    tree.write(dst_path+events_file, xml_declaration=True, encoding="UTF-8")
@@ -192,7 +194,8 @@ def processShapes(src_path, dst_path, shapes_file, offset_start, offset_end=0):
 			    start_ts =  float(start_ts)
 			    stop_ts =  float(stop_ts)
 			    if(start_ts>=offset_start and start_ts<offset_end or
-				stop_ts>offset_start and stop_ts<=offset_end):
+				stop_ts>offset_start and stop_ts<=offset_end or
+				start_ts<offset_start and stop_ts>offset_end):
 				    if(start_ts>offset_start):
 					    img.set("in", str(round(start_ts - offset_start, 1)))
 				    else:
@@ -220,7 +223,6 @@ def processShapes(src_path, dst_path, shapes_file, offset_start, offset_end=0):
 		    f.write(etree.tostring(tree.getroot(), encoding="UTF-8"))
 
 	    if presentations:
-
 		    os.mkdir(dst_path+"/presentation")
 		    for presentation in presentations:
 			    if os.path.isdir(src_path+"/presentation/"+presentation):
@@ -261,10 +263,11 @@ else:
 		    offset_start = getSec(row[hdr.index("offset_start")])
 		    offset_end = getSec(row[hdr.index("offset_end")])
 		    if offset_start is None or offset_end is None:
-#			    print("Row with subject '{}' is skipped because of incorrect start and end times.".format(row[hdr.index("subject")]))
+			    print("Row with subject '{}' has been skipped due to incorrect start and end time values.".format(row[hdr.index("meetingId")]))
 			    continue
 		    else:
 			    old_meeting_id = row[hdr.index("meeting_id")]
+			    print("Processing meetingId: {}...".format(old_meeting_id));
 			    src_base = sys.argv[1].rstrip('/')
 #			    dst_base = "./presentation/"
 			    src_path = src_base+'/'+old_meeting_id
@@ -275,7 +278,7 @@ else:
 			    else:
 				    new_meeting_id = row[hdr.index("author")]
 
-			    new_meeting_name = new_meeting_id+'. '+row[hdr.index("subject")]+" (Conference hall: "+row[hdr.index("hall")]+")" # TODO: check existance of the each index
+			    new_meeting_name = new_meeting_id+'. '+row[hdr.index("subject")]+" (Conference hall: "+row[hdr.index("hall")]+")" # TODO: check existance of the each index and move it into flexible command-line template
 			    new_meeting_id = "speaker-"+"".join(new_meeting_id.split()) # replace all white spaces
 
 			    dst_path = dst_base+"/"+new_meeting_id

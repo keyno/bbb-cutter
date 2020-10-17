@@ -1,7 +1,7 @@
 # bbb-cutter utility pack
 
 This utility pack has two small utilities to manage the videos recorded by BigBlueButton web conferencing system (see https://bigbluebutton.org/ ).
-It consists `bbb-cutter` and `bbb-listgen` utilities.
+It consist of `bbb-cutter` and `bbb-listgen` utilities.
 
 - `bbb-listgen` utility will generate list of videos in HTML format based on the specified directory with BigBlueButton tree structure
 - `bbb-cutter` utility will perform video cutting based on CSV file and specified directory paths with BigBlueButton tree structure
@@ -10,7 +10,7 @@ Clone this repository to the working directory, install necessary dependencies a
 
 ## Dependencies
 
-It required Python 3.x+ to be installed on the system.
+It requires Python 3.x+ to be installed on the system.
 
 This utility pack has the following dependencies:
 - ffmpeg-python
